@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Low Stock Alerts</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+body { background-color: #f8f9fa; font-family: 'Inter', -apple-system, sans-serif; }
+.navbar { box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+.card { border: none; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: transform 0.2s ease-in-out; }
+.card:hover { transform: translateY(-5px); }
+.card-title { color: #6c757d; font-size: 0.9rem; text-transform: uppercase; font-weight: 600; }
+.card-value { font-size: 2.2rem; font-weight: 700; color: #2b2d42; }
+.table-container { background: #fff; border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+.table th { font-weight: 600; color: #495057; background-color: #f8f9fa; text-transform: uppercase; font-size: 0.85rem; cursor: pointer; }
+.table td { vertical-align: middle; }
+.login-container { background-color: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); padding: 2.5rem; }
+.input-custom { border-radius: 8px; padding: 0.75rem 1rem; border: 1px solid #ced4da; }
+.input-custom:focus { box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15); }
+.badge-low-stock { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 p-3 shadow-sm">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="/dashboard"><i class="bi bi-box-seam me-2 text-primary"></i> Inventory Pro</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" href="/dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="/products"><i class="bi bi-box"></i> Products</a></li>
+                <li class="nav-item"><a class="nav-link active text-warning" href="/low-stock"><i class="bi bi-exclamation-triangle"></i> Low Stock</a></li>
+                <li class="nav-item" sec:authorize="hasRole('ADMIN')"><a class="nav-link" href="/logs"><i class="bi bi-clock-history"></i> Logs</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="row align-items-center mb-4">
+        <div class="col">
+            <h2 class="text-warning border-bottom border-warning pb-2 d-inline-block border-2"><i class="bi bi-exclamation-triangle text-warning me-2"></i> Critical Low Stock Alerts</h2>
+            <p class="text-muted mt-2">These products are at or below their designated reorder level and need immediate restocking.</p>
+        </div>
+    </div>
+
+    <div class="table-container shadow-sm border-0 border-top border-warning border-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="lowStockTable">
+                <thead class="table-light">
+                <tr>
+                    <th onclick="sortTable(0, 'lowStockTable')" class="action-icon">Product Name <i class="bi bi-arrow-down-up small text-muted"></i></th>
+                    <th class="text-center">Category</th>
+                    <th onclick="sortTable(2, 'lowStockTable')" class="action-icon text-center">Remaining Quantity <i class="bi bi-arrow-down-up small text-muted"></i></th>
+                    <th class="text-center">Reorder Limit</th>
+                    <th sec:authorize="hasRole('ADMIN')" class="text-end">Quick Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="p : ${products}" class="table-warning border-bottom border-white shadow-sm">
+                    <td class="fw-bold pe-5">
+                        <i class="bi bi-circle-fill text-danger small me-2" th:if="${p.quantity == 0}"></i>
+                        <i class="bi bi-circle-fill text-warning small me-2" th:if="${p.quantity > 0}"></i>
+                        <span th:text="${p.name}"></span>
+                    </td>
+                    <td class="text-center"><span class="badge bg-dark bg-opacity-10 text-dark rounded-pill" th:text="${p.category}"></span></td>
+                    <td class="text-center">
+                        <span class="fs-5 fw-bold" th:classappend="${p.quantity == 0} ? 'text-danger' : 'text-warning'" th:text="${p.quantity}"></span>
+                    </td>
+                    <td class="text-center text-muted small"><span th:text="${p.reorderLevel}"></span></td>
+                    <td sec:authorize="hasRole('ADMIN')" class="text-end">
+                        <a th:href="@{/products/update/{id}(id=${p.id},quantity=50,type='ADD')}" 
+                           onclick="return confirmStockUpdate(event, this)"
+                           class="btn btn-sm btn-outline-success border shadow-sm">
+                            <i class="bi bi-box-arrow-in-down"></i> Restock +50
+                        </a>
+                        <a href="/products" class="btn btn-sm btn-outline-secondary border shadow-sm ms-1">View <i class="bi bi-arrow-right"></i></a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            
+            <div th:if="${products.empty}" class="text-center py-5">
+                <div class="bg-success bg-opacity-10 d-inline-block p-4 rounded-circle mb-3 border border-success border-opacity-25">
+                    <i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i>
+                </div>
+                <h4 class="text-success fw-bold">All Good!</h4>
+                <p class="text-muted">There are zero low stock alerts right now. Your inventory is healthy.</p>
+                <a href="/products" class="btn btn-outline-secondary mt-2">Back to Products</a>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function filterTable(inputId, tableId) {
+    const filter = document.getElementById(inputId)?.value.toLowerCase();
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    const rows = table.getElementsByTagName('tbody')[0]?.getElementsByTagName('tr');
+    if(!rows) return;
+    for (let i = 0; i < rows.length; i++) {
+        let match = false;
+        const tds = rows[i].getElementsByTagName('td');
+        for (let j = 0; j < tds.length; j++) {
+            if (tds[j] && tds[j].innerText.toLowerCase().indexOf(filter) > -1) { match = true; break; }
+        }
+        rows[i].style.display = match ? '' : 'none';
+    }
+}
+function sortTable(n, tableId) {
+    var table = document.getElementById(tableId);
+    if (!table) return;
+    var rows, switching = true, i, x, y, shouldSwitch, dir = "asc", switchcount = 0;
+    while (switching) {
+        switching = false;
+        rows = table.getElementsByTagName('tbody')[0].getElementsByTagName("tr");
+        for (i = 0; i < (rows.length - 1); i++) {
+            shouldSwitch = false;
+            x = rows[i].getElementsByTagName("TD")[n];
+            y = rows[i + 1].getElementsByTagName("TD")[n];
+            if(!x || !y) continue;
+            let xContent = x.innerText.toLowerCase().replace(/[^a-z0-9.-]/g, '');
+            let yContent = y.innerText.toLowerCase().replace(/[^a-z0-9.-]/g, '');
+            if (!isNaN(parseFloat(xContent)) && !isNaN(parseFloat(yContent))) { xContent = parseFloat(xContent); yContent = parseFloat(yContent); }
+            if (dir == "asc" && xContent > yContent) { shouldSwitch = true; break; }
+            else if (dir == "desc" && xContent < yContent) { shouldSwitch = true; break; }
+        }
+        if (shouldSwitch) {
+            rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+            switching = true; switchcount++;
+        } else if (switchcount == 0 && dir == "asc") { dir = "desc"; switching = true; }
+    }
+}
+function confirmStockUpdate(event, element) {
+    if(!confirm("Change the stock quantity?")) { event.preventDefault(); return false; }
+    element.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+    element.classList.add('disabled');
+    return true;
+}
+</script>
+</body>
+</html>

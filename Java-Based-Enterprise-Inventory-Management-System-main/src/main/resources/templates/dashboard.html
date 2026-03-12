@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+body { background-color: #f8f9fa; font-family: 'Inter', -apple-system, sans-serif; }
+.navbar { box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+.card { border: none; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: transform 0.2s ease-in-out; }
+.card:hover { transform: translateY(-5px); }
+.card-title { color: #6c757d; font-size: 0.9rem; text-transform: uppercase; font-weight: 600; }
+.card-value { font-size: 2.2rem; font-weight: 700; color: #2b2d42; }
+.table-container { background: #fff; border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+.table th { font-weight: 600; color: #495057; background-color: #f8f9fa; text-transform: uppercase; font-size: 0.85rem; cursor: pointer; }
+.table td { vertical-align: middle; }
+.login-container { background-color: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); padding: 2.5rem; }
+.input-custom { border-radius: 8px; padding: 0.75rem 1rem; border: 1px solid #ced4da; }
+.input-custom:focus { box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15); }
+.badge-low-stock { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 p-3 shadow-sm">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="/dashboard"><i class="bi bi-box-seam me-2 text-primary"></i> Inventory Pro</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link active" href="/dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="/products"><i class="bi bi-box"></i> Products</a></li>
+                <li class="nav-item"><a class="nav-link" href="/low-stock"><i class="bi bi-exclamation-triangle"></i> Low Stock</a></li>
+                <li class="nav-item" sec:authorize="hasRole('ADMIN')"><a class="nav-link" href="/logs"><i class="bi bi-clock-history"></i> Logs</a></li>
+            </ul>
+            <ul class="navbar-nav">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle"></i> <span sec:authentication="name">User</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow">
+                        <li><a class="dropdown-item text-danger" href="/logout"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Dashboard Overview</h2>
+        <div>
+            <a sec:authorize="hasRole('ADMIN')" href="/reports/export" class="btn btn-outline-success me-2"><i class="bi bi-file-earmark-excel"></i> Export Products</a>
+            <a sec:authorize="hasRole('ADMIN')" href="/reports/logs/export" class="btn btn-outline-info"><i class="bi bi-file-earmark-text"></i> Export Logs</a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Total Products -->
+        <div class="col-md-4">
+            <div class="card p-4 shadow-sm h-100 border-start border-primary border-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="card-title mb-0">Total Products</h5>
+                    <div class="bg-primary bg-opacity-10 p-2 rounded text-primary fs-4"><i class="bi bi-boxes"></i></div>
+                </div>
+                <div class="card-value" th:text="${totalProducts}"></div>
+                <div class="text-muted small mt-2">Items currently tracked in system</div>
+            </div>
+        </div>
+
+        <!-- Total Inventory Value -->
+        <div class="col-md-4">
+            <div class="card p-4 shadow-sm h-100 border-start border-success border-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="card-title mb-0">Inventory Value</h5>
+                    <div class="bg-success bg-opacity-10 p-2 rounded text-success fs-4"><i class="bi bi-currency-dollar"></i></div>
+                </div>
+                <div class="card-value">₹<span th:text="${#numbers.formatDecimal(totalInventoryValue, 1, 'COMMA', 2, 'POINT')}"></span></div>
+                <div class="text-muted small mt-2">Total monetary value of stock</div>
+            </div>
+        </div>
+
+        <!-- Low Stock Count -->
+        <div class="col-md-4">
+            <div class="card p-4 shadow-sm h-100 border-start border-warning border-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="card-title mb-0">Low Stock Alerts</h5>
+                    <div class="bg-warning bg-opacity-10 p-2 rounded text-warning fs-4"><i class="bi bi-exclamation-circle"></i></div>
+                </div>
+                <div class="card-value text-warning" th:text="${lowStockCount}"></div>
+                <div class="text-muted small mt-2">Items needing immediate reorder</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card shadow-sm table-container">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="m-0 text-secondary"><i class="bi bi-lightning-charge"></i> Quick Actions</h4>
+                </div>
+                <div class="d-flex gap-3 mt-3">
+                    <a href="/products" class="btn btn-primary btn-lg flex-grow-1"><i class="bi bi-box me-1"></i> View All Products</a>
+                    <a sec:authorize="hasRole('ADMIN')" href="/products/add" class="btn btn-success btn-lg flex-grow-1"><i class="bi bi-plus-lg me-1"></i> Add New Product</a>
+                    <a href="/low-stock" class="btn btn-warning btn-lg flex-grow-1"><i class="bi bi-exclamation-triangle me-1"></i> Review Low Stock</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
